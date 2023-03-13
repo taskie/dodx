@@ -75,3 +75,7 @@ rgdiff() {
 
 rgdiff foo bar -g '*.txt'
 ```
+
+## License
+
+MIT or Apache-2.0
