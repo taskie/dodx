@@ -1,0 +1,22 @@
+--- tests/fixtures/example.txt
++++ tests/fixtures/example.txt
+@@ -1,3 +1,3 @@
+ a b c
+-d e f
++d E f
+ g h i
+--- tests/fixtures/example2.txt
++++ tests/fixtures/example2.txt
+@@ -1,9 +1,9 @@
+-The
++ThE
+ quick
+ brown
+ fox
+ jumps
+-over
+-the
++ovEr
++thE
+ lazy
+ dog

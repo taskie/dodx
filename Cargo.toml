@@ -15,3 +15,6 @@ clap = { version = "4.1.11", features = ["derive"] }
 env_logger = "0.10.0"
 log = "0.4.17"
 similar = { version = "2.2.0", features = ["bytes"] }
+
+[dev-dependencies]
+assert_cmd = "2.0.10"

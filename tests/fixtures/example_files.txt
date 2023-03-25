@@ -1,0 +1,2 @@
+tests/fixtures/example.txt
+tests/fixtures/example2.txt
