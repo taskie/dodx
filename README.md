@@ -1,12 +1,16 @@
 # dodx
 
-a differential operator for CLI tools.
+*a differential operator for CLI tools.*
 
-## Usage
+dodx creates patch files by comparing command outputs with original files.
+
+![Example](images/example.gif)
+
+## Examples
 
 ### Basic usage
 
-```sh-session
+``` console
 $ cat 1.txt
 foo
 $ echo 1.txt | dodx sed 's/foo/bar/g'
@@ -23,25 +27,35 @@ bar
 
 ### With a single argument
 
-```sh
+``` sh
 dodx -x sed 's/foo/bar/g' 1.txt
 ```
 
 ### With multiple arguments
 
-```sh
+``` sh
 dodx -X sed 's/foo/bar/g' -- *.txt
 ```
 
 ### As a filter
 
-```sh
-dodx -F sed 's/foo/bar/g' <1.txt
+``` sh
+echo foo | dodx -F sed 's/foo/bar/g'
+```
+
+Output:
+
+``` diff
+--- <stdin>
++++ <stdout>
+@@ -1 +1 @@
+-foo
++bar
 ```
 
 ### With `find`
 
-```sh
+``` sh
 find . -name '*.txt' | dodx sed 's/foo/bar/g'
 # or
 find . -name '*.txt' -print0 | dodx -0 sed 's/foo/bar/g'
@@ -53,7 +67,7 @@ find . -name '*.txt' -exec dodx -X sed 's/foo/bar/g' -- '{}' +
 
 ### With `fd`
 
-```sh
+``` sh
 fd '\.txt$' | dodx sed 's/foo/bar/g'
 # or
 fd -0 '\.txt$' | dodx -0 sed 's/foo/bar/g'
@@ -65,7 +79,7 @@ fd '\.txt$' -X dodx -X sed 's/foo/bar/g' --
 
 ### With `rg`
 
-```sh
+``` sh
 rgdiff() {
     pat="$1"
     rep="$2"
@@ -74,6 +88,28 @@ rgdiff() {
 }
 
 rgdiff foo bar -g '*.txt'
+```
+
+## Usage
+
+``` console
+$ dodx --help
+dodx creates patch files by comparing command outputs with original files
+
+Usage: dodx [OPTIONS] <CMD> [ARG]...
+
+Arguments:
+  <CMD>     Command to execute
+  [ARG]...  Command arguments
+
+Options:
+  -0, --null                     Handle null-separated input items
+  -X, --multi-args               Interpret arguments after last '--' as file names
+  -x, --single-arg               Interpret the last argument as a file name
+  -f, --files-from <FILES_FROM>  File containing file names
+  -F, --filter                   Show diff between CMD's stdin and stdout
+  -h, --help                     Print help
+  -V, --version                  Print version
 ```
 
 ## License
