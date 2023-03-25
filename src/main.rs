@@ -8,31 +8,32 @@ use std::{
 };
 
 use anyhow::Result;
-use clap::{AppSettings, Parser};
+use clap::Parser;
+use log::debug;
 use similar::TextDiff;
 
-#[derive(Parser, Debug)]
-#[clap(author, version, about, long_about = None, setting = AppSettings::TrailingVarArg)]
+#[derive(Clone, Debug, Parser)]
+#[clap(author, version, about, long_about = None)]
 struct Args {
-    #[clap(short = '0', long, value_parser)]
+    #[clap(short = '0', long)]
     null: bool,
 
-    #[clap(short = 'X', long, value_parser)]
+    #[clap(short = 'X', long)]
     multi_args: bool,
 
-    #[clap(short = 'x', long, value_parser)]
+    #[clap(short = 'x', long)]
     single_arg: bool,
 
-    #[clap(short, long, value_parser)]
+    #[clap(short, long)]
     files_from: Option<PathBuf>,
 
-    #[clap(short = 'F', long, value_parser)]
+    #[clap(short = 'F', long)]
     filter: bool,
 
-    #[clap(name = "CMD", value_parser)]
+    #[clap(name = "CMD")]
     cmd_name: String,
 
-    #[clap(name = "ARG", value_parser)]
+    #[clap(name = "ARG", trailing_var_arg = true)]
     cmd_args: Vec<String>,
 }
 
