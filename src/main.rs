@@ -9,30 +9,30 @@ use std::{
 
 use anyhow::Result;
 use clap::Parser;
-use log::debug;
 use similar::TextDiff;
 
 #[derive(Clone, Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
+    /// Handle null-separated input items
     #[clap(short = '0', long)]
     null: bool,
-
+    /// Interpret arguments after last '--' as file names
     #[clap(short = 'X', long)]
     multi_args: bool,
-
+    /// Interpret the last argument as a file name
     #[clap(short = 'x', long)]
     single_arg: bool,
-
+    /// File containing file names
     #[clap(short, long)]
     files_from: Option<PathBuf>,
-
+    /// Show diff between CMD's stdin and stdout
     #[clap(short = 'F', long)]
     filter: bool,
-
+    /// Command to execute
     #[clap(name = "CMD")]
     cmd_name: String,
-
+    /// Command arguments
     #[clap(name = "ARG", trailing_var_arg = true)]
     cmd_args: Vec<String>,
 }
