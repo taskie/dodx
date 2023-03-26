@@ -84,7 +84,7 @@ rgdiff() {
     pat="$1"
     rep="$2"
     shift 2
-    rg -0l "$pat" "$@" | dodx -0 rg "$pat" -r "$rep" -IN --passthru
+    rg -0l "$pat" "$@" | dodx -0u rg "$pat" -r "$rep" -IN --passthru
 }
 
 rgdiff foo bar -g '*.txt'
@@ -104,6 +104,8 @@ Arguments:
 
 Options:
   -0, --null                     Handle null-separated input items
+  -j, --threads <THREADS>        The approximate number of threads to use [default: 0]
+  -u, --unordered                Produce fast unordered output in multi-threaded execution
   -X, --multi-args               Interpret arguments after last '--' as file names
   -x, --single-arg               Interpret the last argument as a file name
   -f, --files-from <FILES_FROM>  File containing file names
