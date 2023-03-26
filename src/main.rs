@@ -1,6 +1,8 @@
-use std::os::unix::ffi::OsStrExt;
+use std::ffi::OsString;
+use std::num::NonZeroUsize;
+use std::os::unix::ffi::OsStringExt;
+use std::thread::available_parallelism;
 use std::{
-    ffi::OsStr,
     fs::File,
     io::{self, BufRead, BufReader, BufWriter, Read, Write},
     path::{Path, PathBuf},
@@ -9,7 +11,12 @@ use std::{
 
 use anyhow::Result;
 use clap::Parser;
+use itertools::process_results;
+use log::trace;
+use parallel::{parallel_exec_multiple_files_ordered, parallel_exec_multiple_files_unordered};
 use similar::TextDiff;
+
+mod parallel;
 
 #[derive(Clone, Debug, Parser)]
 #[clap(author, version, about, long_about = None)]
@@ -17,6 +24,12 @@ struct Args {
     /// Handle null-separated input items
     #[clap(short = '0', long)]
     null: bool,
+    /// The approximate number of threads to use
+    #[clap(short = 'j', long, default_value_t = 0)]
+    threads: i32,
+    /// Produce fast unordered output in multi-threaded execution
+    #[clap(short = 'u', long)]
+    unordered: bool,
     /// Interpret arguments after last '--' as file names
     #[clap(short = 'X', long)]
     multi_args: bool,
@@ -35,6 +48,10 @@ struct Args {
     /// Command arguments
     #[clap(name = "ARG", trailing_var_arg = true)]
     cmd_args: Vec<String>,
+    /// To debug parallelism
+    #[doc(hidden)]
+    #[clap(long, hide = true)]
+    force_parallel: bool,
 }
 
 fn main() -> Result<()> {
@@ -91,17 +108,23 @@ fn run_with_files_from_buf_reader<W: Write, R: BufRead>(
     bufr: R,
 ) -> Result<()> {
     if args.null {
-        for pathstr in bufr.split(0) {
-            let pathstr = pathstr?;
-            let path = OsStr::from_bytes(&pathstr);
-            exec_one_file(args, &mut bufw, &args.cmd_args, path.as_ref())?;
-        }
+        process_results(bufr.split(0), |lines| {
+            exec_multiple_files(
+                args,
+                &mut bufw,
+                &args.cmd_args,
+                lines.map(|line| OsString::from_vec(line).into()),
+            )
+        })??;
     } else {
-        for pathstr in bufr.lines() {
-            let pathstr = pathstr?;
-            let path = Path::new(&pathstr);
-            exec_one_file(args, &mut bufw, &args.cmd_args, path)?;
-        }
+        process_results(bufr.lines(), |lines| {
+            exec_multiple_files(
+                args,
+                &mut bufw,
+                &args.cmd_args,
+                lines.map(|line| line.into()),
+            )
+        })??;
     }
     Ok(())
 }
@@ -119,13 +142,50 @@ fn run_with_files_from_multi_args<W: Write>(args: &Args, mut bufw: W) -> Result<
     let last_components = cmd_args.split(|s| s == "--").last();
     if let Some(filestrs) = last_components {
         let cmd_opts = &cmd_args[..cmd_args.len() - filestrs.len()];
-        for filestr in filestrs {
-            let file = Path::new(filestr);
-            exec_one_file(args, &mut bufw, cmd_opts, file)?;
-        }
+        exec_multiple_files(
+            args,
+            &mut bufw,
+            cmd_opts,
+            filestrs.iter().map(|line| line.into()),
+        )?;
     } else {
         // invalid
     }
+    Ok(())
+}
+
+fn exec_multiple_files<W: Write, I: Iterator<Item = PathBuf>>(
+    args: &Args,
+    w: W,
+    cmd_args: &[String],
+    files: I,
+) -> Result<()> {
+    let threads = if args.threads > 0 {
+        NonZeroUsize::new(args.threads as usize).unwrap()
+    } else {
+        available_parallelism().unwrap_or(NonZeroUsize::new(1).unwrap())
+    };
+    if threads <= NonZeroUsize::new(1).unwrap() && !args.force_parallel {
+        serial_exec_multiple_files(args, w, cmd_args, files)
+    } else if args.unordered {
+        parallel_exec_multiple_files_unordered(args, w, cmd_args, files, threads)
+    } else {
+        parallel_exec_multiple_files_ordered(args, w, cmd_args, files, threads)
+    }
+}
+
+fn serial_exec_multiple_files<W: Write, I: Iterator<Item = PathBuf>>(
+    args: &Args,
+    mut w: W,
+    cmd_args: &[String],
+    files: I,
+) -> Result<()> {
+    let mut count = 0usize;
+    for file in files {
+        exec_one_file(args, &mut w, cmd_args, &file)?;
+        count += 1;
+    }
+    trace!("processed: {}", count);
     Ok(())
 }
 
