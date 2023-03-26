@@ -1,54 +1,58 @@
 on: [push, pull_request]
 
-name: Continuous integration
+name: ci
 
-# https://github.com/actions-rs/meta/blob/master/recipes/msrv.md
 jobs:
-  check:
-    name: Check
+  test:
+    name: Test
     runs-on: ubuntu-latest
     env:
+      CARGO_INCREMENTAL: 0
       CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
       RUST_BACKTRACE: 1
     strategy:
       matrix:
         rust:
           - stable
     steps:
-      - uses: actions/checkout@v2
-      # https://github.com/actions/cache/blob/master/examples.md#rust---cargo
-      - uses: actions/cache@v3
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - uses: actions-rs/toolchain@v1
+          shared-key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: ${{ matrix.rust }}
-          override: true
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
+          components: llvm-tools-preview
+      - uses: taiki-e/install-action@cargo-llvm-cov
+      - run: cargo llvm-cov --all --lcov --output-path lcov.info
+      - run: cargo llvm-cov --all --no-run
+      - uses: codecov/codecov-action@v3
         with:
-          command: test
-          args: --all
-      - name: Run cargo check
-        uses: actions-rs/cargo@v1
+          files: lcov.info
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    env:
+      CARGO_INCREMENTAL: 0
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
+      RUST_BACKTRACE: 1
+    strategy:
+      matrix:
+        rust:
+          - stable
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Swatinem/rust-cache@v2
         with:
-          command: check
-          args: --all
-      - run: rustup component add clippy
+          shared-key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust }}
+          components: clippy, rustfmt
       - uses: actions-rs/clippy-check@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all --all-features
-      - run: rustup component add rustfmt
-      - name: Run cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
+          args: --all --all-features --benches --tests
+      - run: cargo fmt --all -- --check
