@@ -1,3 +1,7 @@
+use std::io::BufRead;
+
+use itertools::Itertools;
+
 macro_rules! test_filter {
     ($args: expr, $stdin: expr, $stdout: expr) => {
         test_filter!($args, $stdin, $stdout, "")
@@ -73,6 +77,51 @@ fn test_multi_args() -> Result<(), Box<dyn std::error::Error>> {
             "tests/fixtures/example2.txt"
         ],
         "",
+        include_str!("fixtures/example.multi.patch")
+    );
+    Ok(())
+}
+
+#[test]
+fn test_multi_single_thread() -> Result<(), Box<dyn std::error::Error>> {
+    test_filter!(
+        ["-j", "1", "sed", "s/e/E/g"],
+        "tests/fixtures/example.txt\ntests/fixtures/example2.txt",
+        include_str!("fixtures/example.multi.patch")
+    );
+    Ok(())
+}
+
+#[test]
+fn test_multi_unordered() -> Result<(), Box<dyn std::error::Error>> {
+    let mut cmd = ::assert_cmd::Command::cargo_bin("dodx")?;
+    let assert = cmd
+        .args(["-u", "sed", "s/e/E/g"])
+        .write_stdin("tests/fixtures/example.txt\ntests/fixtures/example2.txt")
+        .assert()
+        .success()
+        .stderr("");
+    let output = assert.get_output();
+    let expected_sort: Vec<_> = include_str!("fixtures/example.multi.patch")
+        .lines()
+        .sorted()
+        .collect();
+    let actual_sort: Vec<_> = output
+        .stdout
+        .lines()
+        .filter_map(|l| l.ok())
+        .sorted()
+        .collect();
+    assert_eq!(actual_sort, expected_sort);
+    Ok(())
+}
+
+#[test]
+fn test_multi_single_thread_unordered_force_parallel() -> Result<(), Box<dyn std::error::Error>> {
+    // a hidden CLI option
+    test_filter!(
+        ["-j", "1", "-u", "--force-parallel", "sed", "s/e/E/g"],
+        "tests/fixtures/example.txt\ntests/fixtures/example2.txt",
         include_str!("fixtures/example.multi.patch")
     );
     Ok(())
