@@ -6,29 +6,6 @@ on:
 name: weekly
 
 jobs:
-  install:
-    name: Install
-    runs-on: [ubuntu-latest, macos-latest, windows-latest]
-    env:
-      CARGO_INCREMENTAL: 0
-      CARGO_TERM_COLOR: always
-      RUSTFLAGS: -D warnings
-      RUST_BACKTRACE: 1
-    strategy:
-      matrix:
-        rust:
-          - stable
-    steps:
-      - uses: actions/checkout@v3
-      - uses: Swatinem/rust-cache@v2
-        with:
-          shared-key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: ${{ matrix.rust }}
-      - run: cargo install --path .
-      - run: dodx --version
-      - run: dodx --help
   check-oldest:
     name: Check Oldest
     runs-on: ubuntu-latest
@@ -53,7 +30,10 @@ jobs:
       - uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ matrix.rust }}
-      - run: cargo check
+      - run: cargo install --path .
+      - run: dodx --version
+      - run: dodx --help
+      - run: cargo test --all -- --nocapture
   check-latest:
     name: Check Latest
     runs-on: ubuntu-latest
@@ -75,4 +55,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           shared-key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-      - run: cargo check
+      - run: cargo install --path .
+      - run: dodx --version
+      - run: dodx --help
+      - run: cargo test --all -- --nocapture
