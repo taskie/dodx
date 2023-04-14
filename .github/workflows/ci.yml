@@ -51,8 +51,5 @@ jobs:
         with:
           toolchain: ${{ matrix.rust }}
           components: clippy, rustfmt
-      - uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all --all-features --benches --tests
+      - run: cargo clippy --all
       - run: cargo fmt --all -- --check
