@@ -1,5 +1,8 @@
 # dodx
 
+[![ci](https://github.com/taskie/dodx/actions/workflows/ci.yml/badge.svg)](https://github.com/taskie/dodx/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/taskie/dodx/branch/main/graph/badge.svg?token=QIC7IOY4PL)](https://codecov.io/gh/taskie/dodx)
+
 *a differential operator for CLI tools.*
 
 dodx creates patch files by comparing command outputs with original files.
